@@ -1,0 +1,69 @@
+library(data.table)
+Cyclic phase analysis - fMRI4
+Full Design Structure: G/NG First continuous phase, Tax/Adhoc Cyclic, Final G Continuous Phase
+
+Reading in the data file:
+```{r}
+install.packages("lme4")  
+library(data.table)
+fMRI4_cyclic_data <- fread('/Users/channingeveridge/Downloads/Cycle.csv', stringsAsFactors = TRUE)
+str(fMRI4_cyclic_data)
+
+```  
+lmer syntax:  + signs after one indicate slope, after | what youre setting intercept for
+Fixed effects are significant if null and model are signficantly different
+
+Tried many combinations of slopes/intercepts to see which maximum structure would converge. Very difficult. Below is an example that did NOT converge
+```{r}
+library(lme4)
+start <- Sys.time()
+intxmodel0 <- lmer(Cyclic.RT ~ RelType + Relatedness + SuperCycle + RelType*Relatedness + Relatedness*SuperCycle  + RelType*Relatedness*SuperCycle + 
+              (1+RelType|prompt) +
+              (1+Relatedness|prompt) +
+              (1+SuperCycle|prompt) +
+              (1+RelType*Relatedness|prompt) +
+              (1+RelType|ID) +
+              (1+Relatedness|ID) +
+              (1+SuperCycle|ID) +
+              (1+RelType*Relatedness|ID),
+           data = fMRI4_cyclic_data, control = lmerControl(optimizer = 'Nelder_Mead', optCtrl = list(maxfun = 100000)))
+summary(intxmodel0)
+```
+Best fit so far:
+
+```{r}
+library(lmerTest)
+intxmodelcyc <- lmer(Cyclic.RT ~ Generation + RelType + Generation*RelType*Relatedness + Generation*SuperCycle + Relatedness + SuperCycle + RelType*Relatedness + RelType*Relatedness*SuperCycle +
+            (1+Relatedness|ID) +
+            (1+Relatedness|prompt),
+           data = fMRI4_cyclic_data, control = lmerControl(optimizer = 'Nelder_Mead', optCtrl = list(maxfun = 100000)))
+summary(intxmodelcyc)
+
+
+lsme```
+This model converges fairly quickly
+
+Results:
+
+Generation itself NOT sig, GenxRelType SIG, RelType SIG, Relatedness SIG, SuperCycle NOT SIG, RelTypexRelatedness SIG, RelType*SuperCycle NOT SIG
+
+Relatedness, RelType*Relatedness, RelType*SuperCycle Sig in RM analysis
+
+```
+Null model for testing:
+```{r}
+nullmodelcyc <- lmer(Cyclic.RT ~ +
+             (1+SuperCycle|ID) +
+           (1+SuperCycle|prompt),
+           data = fMRI4_cyclic_data, control = lmerControl(optimizer = 'Nelder_Mead', optCtrl = list(maxfun = 100000)))
+nullmodelcyc
+
+anova(nullmodelcyc,intxmodelcyc)
+
+
+
+library(emmeans)
+emmeans(intxmodelcyc,pairwise~RelType|Generation)
+emmeans(intxmodelcyc,pairwise~Relatedness|RelType)
+emmeans(intxmodelcyc, pairwise~RelType*Relatedness|SuperCycle, at = list(SuperCycle = 1:3))
+
