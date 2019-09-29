@@ -1,0 +1,46 @@
+Reading in the file:
+```{r}
+library(data.table) 
+fMRI4_contfinal_data <- fread('/Users/channingeveridge/ContFinal.csv', stringsAsFactors = TRUE)
+str(fMRI4_contfinal_data)
+```  
+A model that converges:
+```{r}
+library(lme4)
+intxmodelfcont1 <- lmer(LastContinuous.RT ~ Generation + RelType + Relatedness + Quartile + RelType*Relatedness +
+           (1+Relatedness*Quartile|Subject) +
+           (1+Quartile|Item),
+           data = fMRI4_contfinal_data, control = lmerControl(optimizer = 'Nelder_Mead', optCtrl = list(maxfun = 100000)))
+intxmodelfcont1
+```
+Trying a model with added intx of fixed factors:
+
+```{r}
+library(lmerTest)
+intxmodelfcont2 <- lmer(LastContinuous.RT ~ Generation + RelType + Relatedness + Quartile + RelType*Quartile + Relatedness*RelType+ RelType*Relatedness*Quartile + Relatedness*Quartile +
+           (1+RelType*Quartile|Subject) +
+           (1+Quartile|Item),
+           data = fMRI4_contfinal_data, control = lmerControl(optimizer = 'Nelder_Mead', optCtrl = list(maxfun = 100000)))
+summary(intxmodelfcont2)
+
+```
+Results: 
+
+Quartile and RelType*Quartile only sig, corroborated with results of previous RM analysis
+
+Testing against null model:
+```{r}
+
+nullcont2 <- lmer(LastContinuous.RT ~
+           (1+RelType*Quartile|Subject) +
+           (1+Quartile|Item),
+           data = fMRI4_contfinal_data, control = lmerControl(optimizer = 'Nelder_Mead', optCtrl = list(maxfun = 100000)))
+nullcont2
+
+anova(nullcont2,intxmodelfcont2)
+
+
+library(emmeans)
+emmeans(intxmodelfcont2, pairwise~Quartile, at = list(Quartile = 1:4))
+emmeans(intxmodelfcont2, pairwise~RelType|Quartile, at = list(Quartile = 1:4))
+
